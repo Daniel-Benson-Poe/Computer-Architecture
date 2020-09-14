@@ -7,12 +7,27 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 256  # Attributes space for memory - 256 bits
+        self.registers = [0] * 8  # Creates list of length 8 to store our registers
+        self.pc = 0  # sets our program counter - points to the address of currently executing instruction
+        self.running = False  # Whether our computer is on or off - default state is
+        self.ir = None  # Instruction Register: Holds copy of currently running instruction - default is None
 
+    def ram_read(self, address):
+        # `ram_read()` should accept the address to read and return the value stored
+        # there.
+        self.pc = address
+        return self.ram[self.pc]
+
+    def ram_write(self, value, address):
+        # `ram_write()` should accept a value to write, and the address to write it to.
+        self.pc = address
+        self.ram[self.pc] = value 
+    
     def load(self):
         """Load a program into memory."""
 
-        address = 0
+        address = self.pc
 
         # For now, we've just hardcoded a program:
 
@@ -35,7 +50,7 @@ class CPU:
         """ALU operations."""
 
         if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
+            self.registers[reg_a] += self.registers[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -56,10 +71,14 @@ class CPU:
         ), end='')
 
         for i in range(8):
-            print(" %02X" % self.reg[i], end='')
+            print(" %02X" % self.registers[i], end='')
 
         print()
 
     def run(self):
         """Run the CPU."""
         pass
+
+if __name__ == "__main__":
+    cpu = CPU()
+    cpu

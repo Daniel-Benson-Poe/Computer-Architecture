@@ -57,6 +57,8 @@ python3 ls8.py
 
 but you'll have to implement those three above instructions first!
 
+############################### DAY 1 ################################
+
 ## Step 0: IMPORTANT: inventory what is here!
 
 * Make a list of files here.
@@ -64,6 +66,9 @@ but you'll have to implement those three above instructions first!
 * Note what has been implemented, and what hasn't.
 * Read this whole file.
 * Skim the spec.
+
+cpu.py : code for the main functionality of our CPU...conatins the CPU class
+ls8.py : code for our computer architecture...implements CPU with RAM, etc. to allow our emulator to run a program.
 
 ## Step 1: Add the constructor to `cpu.py`
 
@@ -153,6 +158,11 @@ the LS-8 spec.
 
 *At this point, you should be able to run the program and have it print `8` to
 the console!*
+
+############################ END OF DAY 1 ############################
+
+
+############################### DAY 2 ################################
 
 ## Step 7: Un-hardcode the machine code
 
