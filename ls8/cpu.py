@@ -10,6 +10,7 @@ class CPU:
         self.running = False  # Whether our computer is on or off - default state is
         self.ram = [0] * 256  # Attributes space for memory - 256 bits
         self.registers = [0] * 8  # Creates list of length 8 to store our registers
+        self.registers[7] = 0xF4  # set stack starting point address
         self.pc = self.registers[0]  # sets our program counter - points to the address of currently executing instruction
         self.ir = self.registers[1]  # Instruction Register: Holds copy of currently running instruction - default is None
         self.mar = self.registers[2]  # Memory Address Register - holds memory address we are reading/writing
@@ -59,7 +60,8 @@ class CPU:
         self.instruction_branch["PRN"] = self.handle_prn
         self.instruction_branch["MUL"] = self.handle_mul
         self.instruction_branch["HLT"] = self.handle_hlt
-
+        self.instruction_branch["POP"] = self.handle_pop
+        self.instruction_branch["PUSH"] = self.handle_push
 
     def ram_read(self, address):
         # `ram_read()` should accept the address to read and return the value stored
@@ -154,6 +156,30 @@ class CPU:
 
     def handle_hlt(self, op_a, op_b):
         self.running = False
+
+    def handle_pop(self, op_a, op_b):
+        # get value at top of stack
+        value = self.ram[self.sp]
+        # store value in register
+        self.registers[op_a] = value
+        # increment stack pointer
+        self.registers[7] += 1
+        # update self.sp
+        self.sp = self.registers[7]
+        # increment program counter
+        self.pc += 2
+
+    def handle_push(self, op_a, op_b):
+        # decrement sp
+        self.registers[7] -= 1
+        # update self.sp
+        self.sp = self.registers[7]
+        # get value to add to register
+        value = self.registers[op_a]
+        # copy value to sp
+        self.ram[self.sp] = value
+        # increment program counter
+        self.pc += 2
 
     def run(self):
         """Run the CPU."""

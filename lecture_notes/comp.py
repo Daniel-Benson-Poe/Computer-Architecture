@@ -123,7 +123,7 @@ while running:
         reg_num = memory[pc + 1]
 
         # get top of stack addr
-        top_top_of_stack_addr = registers[SP]
+        top_of_stack_addr = registers[SP]
 
         # get value at top of stack
         value = memory[top_of_stack_addr]
