@@ -71,17 +71,35 @@ class CPU:
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
+        program = []
+
+        if not sys.argv[1].startswith("examples"):
+            print(f"I'm sorry, that is not a valid command line path: {sys.argv[1]}")
+            exit()
+        with open(sys.argv[1], 'r') as program_path:
+            # remove blank lines
+            lines = list(line for line in (l.strip() for l in program_path) if line and not line.startswith("#"))
+
+            for line in lines:
+                for i in range(len(line)):
+                    if line[i] == "#":
+                        line = line[:i-1]
+                        break
+                program.append(int(line, 2))
+
+        
         for instruction in program:
+            # print(instruction)
             self.ram[address] = instruction
             address += 1
 
@@ -143,6 +161,9 @@ class CPU:
             elif self.ir == "PRN":
                 print(self.registers[operand_a])
                 self.pc += 2
+            elif self.ir == "MUL":
+                self.registers[operand_a] *= self.registers[operand_b]
+                self.pc += 3
             elif self.ir == "HLT":
                 self.running = False
             
