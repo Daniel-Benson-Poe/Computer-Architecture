@@ -53,6 +53,12 @@ class CPU:
                                       0b10100001 : "SUB",
                                       0b10101011 : "XOR"
                              }
+                        
+        self.instruction_branch = {}
+        self.instruction_branch["LDI"] = self.handle_ldi
+        self.instruction_branch["PRN"] = self.handle_prn
+        self.instruction_branch["MUL"] = self.handle_mul
+        self.instruction_branch["HLT"] = self.handle_hlt
 
 
     def ram_read(self, address):
@@ -134,47 +140,31 @@ class CPU:
 
         print()
 
+    def handle_ldi(self, op_a, op_b):
+        self.registers[op_a] = op_b
+        self.pc += 3
+
+    def handle_prn(self, op_a, op_b):
+        print(self.registers[op_a])
+        self.pc += 2
+    
+    def handle_mul(self, op_a, op_b):
+        self.registers[op_a] *= self.registers[op_b]
+        self.pc += 3
+
+    def handle_hlt(self, op_a, op_b):
+        self.running = False
+
     def run(self):
         """Run the CPU."""
         self.running = True
 
         while self.running:
-            #     It needs to read the memory address that's stored in register `PC`, and store
-            # that result in `IR`, the _Instruction Register_. This can just be a local
-            # variable in `run()`.
-            instruction = self.ram[self.pc]
-            self.ir = self.code_instruction_pair[instruction]
-            # Some instructions requires up to the next two bytes of data _after_ the `PC` in
-            # memory to perform operations on. Sometimes the byte value is a register number,
-            # other times it's a constant value (in the case of `LDI`). Using `ram_read()`,
-            # read the bytes at `PC+1` and `PC+2` from RAM into variables `operand_a` and
-            # `operand_b` in case the instruction needs them.
-            operand_a = self.ram_read(self.pc+1)
-            operand_b = self.ram_read(self.pc+2)
-
-            # Then, depending on the value of the opcode, perform the actions needed for the
-            # instruction per the LS-8 spec. Maybe an `if-elif` cascade...? There are other
-            # options, too.
-            if self.ir == "LDI":
-                self.registers[operand_a] = operand_b
-                self.pc += 3
-            elif self.ir == "PRN":
-                print(self.registers[operand_a])
-                self.pc += 2
-            elif self.ir == "MUL":
-                self.registers[operand_a] *= self.registers[operand_b]
-                self.pc += 3
-            elif self.ir == "HLT":
-                self.running = False
             
+            instruction = self.ram[self.pc]
+            operand_a = self.ram_read(self.pc+1)
+            operand_b = self.ram_read(self.pc+2) 
+            self.ir = self.code_instruction_pair[instruction]
+            self.instruction_branch[self.ir](operand_a, operand_b)
+
         exit()
-
-            # After running code for any particular instruction, the `PC` needs to be updated
-            # to point to the next instruction for the next iteration of the loop in `run()`.
-            # The number of bytes an instruction uses can be determined from the two high bits
-            # (bits 6-7) of the instruction opcode. See the LS-8 spec for details.
-            #         pass
-
-if __name__ == "__main__":
-    cpu = CPU()
-    cpu
