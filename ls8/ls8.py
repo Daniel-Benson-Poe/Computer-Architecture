@@ -8,6 +8,5 @@ from cpu import *
 cpu = CPU()
 
 cpu.load()
-print(cpu.sp)
 cpu.run()
 # cpu.trace()

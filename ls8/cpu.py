@@ -58,10 +58,17 @@ class CPU:
         self.instruction_branch = {}
         self.instruction_branch["LDI"] = self.handle_ldi
         self.instruction_branch["PRN"] = self.handle_prn
-        self.instruction_branch["MUL"] = self.handle_mul
         self.instruction_branch["HLT"] = self.handle_hlt
         self.instruction_branch["POP"] = self.handle_pop
         self.instruction_branch["PUSH"] = self.handle_push
+        self.instruction_branch["ST"] = self.handle_store
+        self.instruction_branch["MUL"] = self.alu
+        self.instruction_branch["ADD"] = self.alu
+        self.instruction_branch["DIV"] = self.alu
+        self.instruction_branch["SUB"] = self.alu
+        self.instruction = None
+        self.operand_a = None
+        self.operand_b = None
 
     def ram_read(self, address):
         # `ram_read()` should accept the address to read and return the value stored
@@ -112,14 +119,16 @@ class CPU:
             address += 1
 
 
-    def alu(self, op, reg_a, reg_b):
+    def alu(self):
         """ALU operations."""
 
-        if op == "ADD":
-            self.registers[reg_a] += self.registers[reg_b]
-        #elif op == "SUB": etc
-        else:
-            raise Exception("Unsupported ALU operation")
+        alu_instruction_branch = {}
+        alu_instruction_branch["MUL"] = self.handle_mul
+        alu_instruction_branch["ADD"] = self.handle_add
+        alu_instruction_branch["DIV"] = self.handle_div
+        alu_instruction_branch["SUB"] = self.handle_sub
+
+        alu_instruction_branch[self.ir]()
 
     def trace(self):
         """
@@ -142,26 +151,26 @@ class CPU:
 
         print()
 
-    def handle_ldi(self, op_a, op_b):
-        self.registers[op_a] = op_b
+    def handle_ldi(self):
+        self.registers[self.operand_a] = self.operand_b
         self.pc += 3
 
-    def handle_prn(self, op_a, op_b):
-        print(self.registers[op_a])
+    def handle_prn(self):
+        print(self.registers[self.operand_a])
         self.pc += 2
     
-    def handle_mul(self, op_a, op_b):
-        self.registers[op_a] *= self.registers[op_b]
+    def handle_mul(self):
+        self.registers[self.operand_a] *= self.registers[self.operand_b]
         self.pc += 3
 
-    def handle_hlt(self, op_a, op_b):
+    def handle_hlt(self):
         self.running = False
 
-    def handle_pop(self, op_a, op_b):
+    def handle_pop(self):
         # get value at top of stack
         value = self.ram[self.sp]
         # store value in register
-        self.registers[op_a] = value
+        self.registers[self.operand_a] = value
         # increment stack pointer
         self.registers[7] += 1
         # update self.sp
@@ -169,17 +178,36 @@ class CPU:
         # increment program counter
         self.pc += 2
 
-    def handle_push(self, op_a, op_b):
+    def handle_push(self):
         # decrement sp
         self.registers[7] -= 1
         # update self.sp
         self.sp = self.registers[7]
         # get value to add to register
-        value = self.registers[op_a]
+        value = self.registers[self.operand_a]
         # copy value to sp
         self.ram[self.sp] = value
         # increment program counter
         self.pc += 2
+
+    def handle_store(self):
+        self.ram[self.operand_a] = self.operand_b
+
+    def handle_add(self):
+        self.registers[self.operand_a] += self.registers[self.operand_b]
+        self.pc += 3
+
+    def handle_div(self):
+        try:
+            self.registers[self.operand_a] /= self.registers[self.operand_b]
+        except ZeroDivisionError:
+            print("Unable to divide by zero.")
+            exit()
+        self.pc += 3
+
+    def handle_sub(self):
+        self.registers[self.operand_a] -= self.registers[self.operand_b]
+        self.pc += 3
 
     def run(self):
         """Run the CPU."""
@@ -187,10 +215,10 @@ class CPU:
 
         while self.running:
             
-            instruction = self.ram[self.pc]
-            operand_a = self.ram_read(self.pc+1)
-            operand_b = self.ram_read(self.pc+2) 
-            self.ir = self.code_instruction_pair[instruction]
-            self.instruction_branch[self.ir](operand_a, operand_b)
+            self.instruction = self.ram[self.pc]
+            self.operand_a = self.ram_read(self.pc+1)
+            self.operand_b = self.ram_read(self.pc+2) 
+            self.ir = self.code_instruction_pair[self.instruction]
+            self.instruction_branch[self.ir]()
 
         exit()
