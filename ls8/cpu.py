@@ -62,10 +62,20 @@ class CPU:
         self.instruction_branch["POP"] = self.handle_pop
         self.instruction_branch["PUSH"] = self.handle_push
         self.instruction_branch["ST"] = self.handle_store
+        self.instruction_branch["RET"] = self.handle_ret
+        self.instruction_branch["PRA"] = self.handle_pra
+        self.instruction_branch["NOP"] = self.handle_nop
+
         self.instruction_branch["MUL"] = self.alu
         self.instruction_branch["ADD"] = self.alu
         self.instruction_branch["DIV"] = self.alu
         self.instruction_branch["SUB"] = self.alu
+        self.instruction_branch["AND"] = self.alu
+        self.instruction_branch["OR"] = self.alu
+        self.instruction_branch["XOR"] = self.alu
+        self.instruction_branch["NOT"] = self.alu
+        self.instruction_branch["SHL"] = self.alu
+        self.instruction_branch["SHR"] = self.alu
         self.instruction = None
         self.operand_a = None
         self.operand_b = None
@@ -127,6 +137,12 @@ class CPU:
         alu_instruction_branch["ADD"] = self.handle_add
         alu_instruction_branch["DIV"] = self.handle_div
         alu_instruction_branch["SUB"] = self.handle_sub
+        alu_instruction_branch["AND"] = self.handle_and
+        alu_instruction_branch["OR"] = self.handle_or
+        alu_instruction_branch["XOR"] = self.handle_xor
+        alu_instruction_branch["NOT"] = self.handle_not
+        alu_instruction_branch["SHL"] = self.handle_shl
+        alu_instruction_branch["SHR"] = self.handle_shr
 
         alu_instruction_branch[self.ir]()
 
@@ -208,6 +224,44 @@ class CPU:
     def handle_sub(self):
         self.registers[self.operand_a] -= self.registers[self.operand_b]
         self.pc += 3
+
+    def handle_and(self):
+        self.registers[self.operand_a] &= self.registers[self.operand_b]
+        self.pc += 3
+
+    def handle_or(self):
+        self.registers[self.operand_a] |= self.registers[self.operand_b]
+        self.pc += 3
+
+    def handle_xor(self):
+        self.registers[self.operand_a] ^= self.registers[self.operand_b]
+        self.pc += 3
+
+    def handle_not(self):
+        self.registers[self.operand_a] = ~self.registers[self.operand_a]
+        self.pc += 2
+
+    def handle_shl(self):
+        self.registers[self.operand_a] <<= self.registers[self.operand_b]
+        self.pc += 3
+
+    def handle_shr(self):
+        self.registers[self.operand_a] >>= self.registers[self.operand_b]
+        self.pc += 3
+
+    def handle_ret(self):
+        # get value at top of stack
+        value = self.ram[self.sp]
+        self.pc = value
+        self.pc += 1
+
+    def handle_pra(self):
+        character = chr(self.registers[self.operand_a])
+        print(ord(character))
+        self.pc += 2
+
+    def handle_nop(self):
+        self.pc += 1
 
     def run(self):
         """Run the CPU."""
