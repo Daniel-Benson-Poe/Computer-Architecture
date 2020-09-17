@@ -1,6 +1,8 @@
 """CPU functionality."""
 
 import sys
+from datetime import datetime
+from datetime import timedelta
 
 class CPU:
     """Main CPU class."""
@@ -11,11 +13,13 @@ class CPU:
         self.ram = [0] * 256  # Attributes space for memory - 256 bits
         self.registers = [0] * 8  # Creates list of length 8 to store our registers
         self.registers[7] = 0xF4  # set stack starting point address
+        self.registers[4] = 0b00000000  # set flag register to contain 8 bits
+        self.registers[6] = 0b00000000  # set interupt status register to contain 8 bits
         self.pc = self.registers[0]  # sets our program counter - points to the address of currently executing instruction
         self.ir = self.registers[1]  # Instruction Register: Holds copy of currently running instruction - default is None
         self.mar = self.registers[2]  # Memory Address Register - holds memory address we are reading/writing
         self.mdr = self.registers[3]  # memory data register - holds value to write or just read
-        self.fl = self.registers[4]  # Flags
+        self.fl = self.registers[4]  # Flags - '00000LGE'
         self.im = self.registers[5]  # interrupt mask
         self.ie = self.registers[6]  # interupt status
         self.sp = self.registers[7]  # stack pointer
@@ -66,6 +70,15 @@ class CPU:
         self.instruction_branch["PRA"] = self.handle_pra
         self.instruction_branch["NOP"] = self.handle_nop
         self.instruction_branch["CALL"] = self.handle_call
+        self.instruction_branch["JMP"] = self.handle_jmp
+        self.instruction_branch["LD"] = self.handle_ld
+        self.instruction_branch["INT"] = self.handle_int
+        self.instruction_branch["JEQ"] = self.handle_jeq
+        self.instruction_branch["JGE"] = self.handle_jge
+        self.instruction_branch["JGT"] = self.handle_jgt
+        self.instruction_branch["JLE"] = self.handle_jle
+        self.instruction_branch["JLT"] = self.handle_jlt
+        self.instruction_branch["JNE"] = self.handle_jne
 
         self.instruction_branch["MUL"] = self.alu
         self.instruction_branch["ADD"] = self.alu
@@ -77,9 +90,14 @@ class CPU:
         self.instruction_branch["NOT"] = self.alu
         self.instruction_branch["SHL"] = self.alu
         self.instruction_branch["SHR"] = self.alu
+        self.instruction_branch["MOD"] = self.alu
+        self.instruction_branch["CMP"] = self.alu
+        self.instruction_branch["DEC"] = self.alu
+        self.instruction_branch["INC"] = self.alu
         self.instruction = None
         self.operand_a = None
         self.operand_b = None
+        self.interrupt_tracker = True
 
     def ram_read(self, address):
         # `ram_read()` should accept the address to read and return the value stored
@@ -144,6 +162,10 @@ class CPU:
         alu_instruction_branch["NOT"] = self.handle_not
         alu_instruction_branch["SHL"] = self.handle_shl
         alu_instruction_branch["SHR"] = self.handle_shr
+        alu_instruction_branch["MOD"] = self.handle_mod
+        alu_instruction_branch["CMP"] = self.handle_cmp
+        alu_instruction_branch["DEC"] = self.handle_dec
+        alu_instruction_branch["INC"] = self.handl_inc
 
         alu_instruction_branch[self.ir]()
 
@@ -175,7 +197,8 @@ class CPU:
         print(self.registers[self.operand_a])
     
     def handle_mul(self):
-        self.registers[self.operand_a] *= self.registers[self.operand_b]
+        val = self.registers[self.operand_a] * self.registers[self.operand_b]
+        self.registers[self.operand_a] = val & 0xFF
 
     def handle_hlt(self):
         self.running = False
@@ -224,17 +247,20 @@ class CPU:
         self.ram[self.operand_a] = self.operand_b
 
     def handle_add(self):
-        self.registers[self.operand_a] += self.registers[self.operand_b]
+        val = self.registers[self.operand_a] + self.registers[self.operand_b]
+        self.registers[self.operand_a] = val & 0xFF
 
     def handle_div(self):
         try:
-            self.registers[self.operand_a] /= self.registers[self.operand_b]
+            val = self.registers[self.operand_a] // self.registers[self.operand_b]
+            self.registers[self.operand_a] = val & 0xFF
         except ZeroDivisionError:
             print("Unable to divide by zero.")
             exit()
 
     def handle_sub(self):
-        self.registers[self.operand_a] -= self.registers[self.operand_b]
+        val = self.registers[self.operand_a] - self.registers[self.operand_b]
+        self.registers[self.operand_a] = val & 0xFF
 
     def handle_and(self):
         self.registers[self.operand_a] &= self.registers[self.operand_b]
@@ -279,6 +305,80 @@ class CPU:
 
         # set pc to that value
         self.pc = value
+
+    def handle_jmp(self):
+        self.pc = self.registers[self.operand_a]
+
+    def handle_ld(self):
+        memory_address = self.registers[self.operand_b]
+        self.registers[self.operand_a] = self.ram[memory_address]
+
+    def handle_mod(self):
+        try:
+            self.registers[self.operand_a] %= self.registers[self.operand_b]
+        except ZeroDivisionError:
+            print("Unable to divide by zero.")
+            exit()
+
+    def handle_cmp(self):
+        if self.registers[self.operand_a] == self.registers[self.operand_b]:
+            self.registers[4] = 0b00000001
+            self.fl = self.registers[4]
+
+        elif self.registers[self.operand_a] > self.registers[self.operand_b]:
+            self.registers[4] = 0b00000010
+            self.fl = self.registers[4]
+
+        elif self.registers[self.operand_a] < self.registers[self.operand_b]:
+            self.registers[4] = 0b00000100
+            self.fl = self.registers[4]
+        else:
+            self.registers[4] = 0b00000000
+            self.fl = self.registers[4]
+
+    def handle_dec(self):
+        val = self.registers[operand_a] - 1
+        self.registers[operand_a] = val & 0xFF
+
+    def handle_inc(self):
+        val = self.registers[operand_a] + 1
+        self.registers[operand_a] = val & 0xFF
+
+    def handle_jeq(self):
+        if self.fl == 0b00000001:
+            self.pc = self.registers[operand_a]
+        else:
+            return
+
+    def handle_jge(self):
+        if self.fl == 0b00000010 | self.fl == 0b00000001: 
+            self.pc = self.registers[operand_a]
+        else:
+            return
+
+    def handle_jgt(self):
+        if self.fl == 0b00000010: 
+            self.pc = self.registers[operand_a]
+        else:
+            return
+
+    def handle_jle(self):
+        if self.fl == 0b00000100 | self.fl == 0b00000001: 
+            self.pc = self.registers[operand_a]
+        else:
+            return
+
+    def handle_jlt(self):
+        if self.fl == 0b00000100: 
+            self.pc = self.registers[operand_a]
+        else:
+            return
+
+    def handle_jne(self):
+        if self.fl == 0b00000000 | self.fl == 0b00000010 | self.fl == 0b00000100: 
+            self.pc = self.registers[operand_a]
+        else:
+            return
 
     def set_pc(self):
 
