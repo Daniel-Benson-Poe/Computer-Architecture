@@ -64,9 +64,32 @@ PRINT_BEEJ = 1
 PUSH = 5
 POP = 6
 HALT = 2
+CALL = 7
+RET = 8
 
 
 registers[SP] = 0xF4  # Init SP
+
+def push_value(v):
+    # Decrement SP
+        registers[SP] -= 1
+
+        # copy value to SP
+        top_of_stack_addr = registers[SP]
+        memory[top_of_stack_addr] = value
+
+def pop_value():
+
+        # get top of stack addr
+        top_of_stack_addr = registers[SP]
+
+        # get value at top of stack
+        value = memory[top_of_stack_addr]
+
+        # increment sp
+        registers[SP] += 1
+
+        return value
 
 running = True
 
@@ -135,13 +158,20 @@ while running:
         registers[SP] += 1
         pc += 2
 
-    # PUSH:
-    # 1. Decrement SP
-    # 2. Copy the register value into SP's location
+    elif ir == CALL:
+        # compute return addr
+        return_addr = pc + 2
 
-    # POP:
-    # 1. Copy value from SP's location to the reg
-    # 2. Incrememnt SP
+        # push return addr on stack
+        push_value(return_addr)
+
+        # get value from operand reg
+        reg_num = memory[pc + 1]
+        value = registers[reg_num
+        ]
+        # set pc to that value
+        pc = value
+
 
     else:
         print(f"Unknown instruction {ir}")
@@ -150,10 +180,16 @@ while running:
 
     """
     # For the LS-8 to move the PC
+    inst_sets_pc = (ir >> 4) & 1 == 1:
+    inst_sets_pc = ir & 16 != 0
+    inst_sets_pc = ir & 16 # Does this work?
 
-    number_of_operands = (irt & 0b11000000) >> 6
 
-    how_far_to_move_pc = number_of_operands + 1
+    if not inst_sets_pc:
 
-    pc += how_far_to_move_pc
+        number_of_operands = (irt & 0b11000000) >> 6
+
+        how_far_to_move_pc = number_of_operands + 1
+
+        pc += how_far_to_move_pc
     """
