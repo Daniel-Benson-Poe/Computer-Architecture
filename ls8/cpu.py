@@ -57,7 +57,8 @@ class CPU:
                                       0b10101101 : "SHR",
                                       0b10000100 : "ST",
                                       0b10100001 : "SUB",
-                                      0b10101011 : "XOR"
+                                      0b10101011 : "XOR",
+                                      0b10101111 : "ADDI"
                              }
                         
         self.instruction_branch = {}
@@ -96,6 +97,7 @@ class CPU:
         self.instruction_branch["CMP"] = self.alu
         self.instruction_branch["DEC"] = self.alu
         self.instruction_branch["INC"] = self.alu
+        self.instruction_branch["ADDI"] = self.alu
         self.instruction = None
         self.operand_a = None
         self.operand_b = None
@@ -168,6 +170,7 @@ class CPU:
         alu_instruction_branch["CMP"] = self.handle_cmp
         alu_instruction_branch["DEC"] = self.handle_dec
         alu_instruction_branch["INC"] = self.handle_inc
+        alu_instruction_branch["ADDI"] = self.handle_addi
 
         alu_instruction_branch[self.ir]()
 
@@ -399,6 +402,9 @@ class CPU:
         self.fl = self.pop_value()
         self.pc = self.pop_value()
         self.interrupt_tracker = True
+
+    def handle_addi(self):
+        self.registers[self.operand_a] += self.operand_b
   
     def set_pc(self):
 
