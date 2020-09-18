@@ -1,8 +1,7 @@
 """CPU functionality."""
 
 import sys
-from datetime import datetime
-from datetime import timedelta
+import time
 
 class CPU:
     """Main CPU class."""
@@ -11,18 +10,20 @@ class CPU:
         """Construct a new CPU."""
         self.running = False  # Whether our computer is on or off - default state is
         self.ram = [0] * 256  # Attributes space for memory - 256 bits
+        self.iv = self.ram[0xF8]  # set up memory for interupt vector
         self.registers = [0] * 8  # Creates list of length 8 to store our registers
         self.registers[7] = 0xF4  # set stack starting point address
-        self.registers[4] = 0b00000000  # set flag register to contain 8 bits
-        self.registers[6] = 0b00000000  # set interupt status register to contain 8 bits
-        self.pc = self.registers[0]  # sets our program counter - points to the address of currently executing instruction
-        self.ir = self.registers[1]  # Instruction Register: Holds copy of currently running instruction - default is None
-        self.mar = self.registers[2]  # Memory Address Register - holds memory address we are reading/writing
-        self.mdr = self.registers[3]  # memory data register - holds value to write or just read
-        self.fl = self.registers[4]  # Flags - '00000LGE'
-        self.im = self.registers[5]  # interrupt mask
-        self.ie = self.registers[6]  # interupt status
-        self.sp = self.registers[7]  # stack pointer
+        # self.registers[4] = 0b00000000  # set flag register to contain 8 bits
+        # self.registers[6] = 0b00000000  # set interupt status register to contain 8 bits
+        self.pc = 0  # sets our program counter location- points to the address of currently executing instruction
+        self.fl = 0  # Flags - '00000LGE'
+        self.ir = None  # Instruction Register: Holds copy of currently running instruction - default is None
+       
+        self.mar = 2  # Memory Address Register - holds memory address we are reading/writing
+        self.mdr = 3  # memory data register - holds value to write or just read
+        self.im = 5  # interrupt mask
+        self.ie = 6 # interupt status
+        self.sp = 7 # stack pointer
         self.code_instruction_pair = {0b10100000 : "ADD",
                                       0b10101000 : "AND",
                                       0b01010000 : "CALL",
@@ -79,6 +80,7 @@ class CPU:
         self.instruction_branch["JLE"] = self.handle_jle
         self.instruction_branch["JLT"] = self.handle_jlt
         self.instruction_branch["JNE"] = self.handle_jne
+        self.instruction_branch["IRET"] = self.handle_iret
 
         self.instruction_branch["MUL"] = self.alu
         self.instruction_branch["ADD"] = self.alu
@@ -165,7 +167,7 @@ class CPU:
         alu_instruction_branch["MOD"] = self.handle_mod
         alu_instruction_branch["CMP"] = self.handle_cmp
         alu_instruction_branch["DEC"] = self.handle_dec
-        alu_instruction_branch["INC"] = self.handl_inc
+        alu_instruction_branch["INC"] = self.handle_inc
 
         alu_instruction_branch[self.ir]()
 
@@ -205,46 +207,48 @@ class CPU:
 
     def push_value(self, val):
         # decrement sp
-        self.registers[7] -= 1
-        self.sp = self.registers[7]
+        self.registers[self.sp] -= 1
+
+        # get top of stack
+        top_stack = self.registers[self.sp]
 
         # copy value to sp
-        self.ram[self.sp] = val
+        self.ram[top_stack] = val
 
     def pop_value(self):
+        # get top of stack
+        top_stack = self.registers[self.sp]
+
         # get value at top of stack
-        value = self.ram[self.sp]
+        value = self.ram[top_stack]
 
         # increment sp
-        self.registers[7] += 1
-        self.sp = self.registers[7]
+        self.registers[self.sp] += 1
 
         return value
 
     def handle_pop(self):
+        # get address for top of stack
+        top_stack = self.registers[self.sp]
         # get value at top of stack
-        value = self.ram[self.sp]
+        value = self.ram[top_stack]
         # store value in register
         self.registers[self.operand_a] = value
         # increment stack pointer
-        self.registers[7] += 1
-        # update self.sp
-        self.sp = self.registers[7]
-        # increment program counter
+        self.registers[self.sp] += 1
 
     def handle_push(self):
         # decrement sp
-        self.registers[7] -= 1
-        # update self.sp
-        self.sp = self.registers[7]
+        self.registers[self.sp] -= 1
         # get value to add to register
         value = self.registers[self.operand_a]
+        # get address for top of stack
+        top_stack = self.registers[self.sp]
         # copy value to sp
-        self.ram[self.sp] = value
-        # increment program counter
+        self.ram[top_stack] = value
 
     def handle_store(self):
-        self.ram[self.operand_a] = self.operand_b
+        self.ram[self.operand_a] = self.registers[self.operand_b]
 
     def handle_add(self):
         val = self.registers[self.operand_a] + self.registers[self.operand_b]
@@ -287,7 +291,6 @@ class CPU:
     def handle_pra(self):
         character = chr(self.registers[self.operand_a])
         print(ord(character))
-        self.pc += 2
 
     def handle_nop(self):
         return
@@ -322,19 +325,16 @@ class CPU:
 
     def handle_cmp(self):
         if self.registers[self.operand_a] == self.registers[self.operand_b]:
-            self.registers[4] = 0b00000001
-            self.fl = self.registers[4]
+            self.fl = 0b00000001
 
         elif self.registers[self.operand_a] > self.registers[self.operand_b]:
-            self.registers[4] = 0b00000010
-            self.fl = self.registers[4]
+            self.fl = 0b00000010
 
         elif self.registers[self.operand_a] < self.registers[self.operand_b]:
-            self.registers[4] = 0b00000100
-            self.fl = self.registers[4]
+            self.fl = 0b00000100
+
         else:
-            self.registers[4] = 0b00000000
-            self.fl = self.registers[4]
+            self.fl = 0b00000000
 
     def handle_dec(self):
         val = self.registers[operand_a] - 1
@@ -380,6 +380,26 @@ class CPU:
         else:
             return
 
+    def handle_int(self):
+        masked_int = self.registers[self.im] & self.registers[self.ie]
+        for i in range(8):
+            interrupt_happened = ((masked_int >> i) & 1) == 1
+            if masked_int & interrupt_happened:
+                self.interrupt_tracker = False
+                self.registers[self.ie] = self.registers[self.ie] & ~interrupt_happened
+                self.push_value(self.pc)
+                self.push_value(self.fl)
+                for reg in range(7):
+                    self.push_value(self.registers[reg])
+                self.pc = self.ram[self.iv + i]
+
+    def handle_iret(self):
+        for reg in range(6, -1, -1):
+            self.registers[reg] = self.pop_value()
+        self.fl = self.pop_value()
+        self.pc = self.pop_value()
+        self.interrupt_tracker = True
+  
     def set_pc(self):
 
         if (self.instruction >> 4) & 1 == 1:
@@ -398,14 +418,24 @@ class CPU:
     def run(self):
         """Run the CPU."""
         self.running = True
+        start_time = time.time()
+        time_interval = 0
 
         while self.running:
-            
+            loop_time = time.time()
+            time_interval += (loop_time - start_time)
+            start_time = loop_time
+            if time_interval >= 1:
+                self.registers[self.ie] = 1
+                time_interval = 0
             self.instruction = self.ram[self.pc]
             self.operand_a = self.ram_read(self.pc+1)
             self.operand_b = self.ram_read(self.pc+2) 
             self.ir = self.code_instruction_pair[self.instruction]
             self.instruction_branch[self.ir]()
             self.set_pc()
+
+            if self.interrupt_tracker:
+                self.handle_int()
 
         exit()
