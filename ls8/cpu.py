@@ -345,40 +345,40 @@ class CPU:
         self.registers[operand_a] = val & 0xFF
 
     def handle_jeq(self):
-        if self.fl == 0b00000001:
-            self.pc = self.registers[operand_a]
+        if self.fl & 1 == 1:
+            self.pc = self.registers[self.operand_a]
         else:
-            return
+            self.pc += 2
 
     def handle_jge(self):
-        if self.fl == 0b00000010 | self.fl == 0b00000001: 
-            self.pc = self.registers[operand_a]
+        if self.fl & 2 == 2 | self.fl & 1 == 1: 
+            self.pc = self.registers[self.operand_a]
         else:
-            return
+            self.pc += 2
 
     def handle_jgt(self):
-        if self.fl == 0b00000010: 
-            self.pc = self.registers[operand_a]
+        if self.fl & 2 == 2: 
+            self.pc = self.registers[self.operand_a]
         else:
-            return
+            self.pc += 2
 
     def handle_jle(self):
-        if self.fl == 0b00000100 | self.fl == 0b00000001: 
-            self.pc = self.registers[operand_a]
+        if self.fl & 4 == 4 | self.fl & 1 == 1: 
+            self.pc = self.registers[self.operand_a]
         else:
-            return
+            self.pc += 2
 
     def handle_jlt(self):
-        if self.fl == 0b00000100: 
-            self.pc = self.registers[operand_a]
+        if self.fl & 4 == 4: 
+            self.pc = self.registers[self.operand_a]
         else:
-            return
+            self.pc += 2
 
     def handle_jne(self):
-        if self.fl == 0b00000000 | self.fl == 0b00000010 | self.fl == 0b00000100: 
-            self.pc = self.registers[operand_a]
+        if self.fl & 1 == 0: 
+            self.pc = self.registers[self.operand_a]
         else:
-            return
+            self.pc += 2
 
     def handle_int(self):
         masked_int = self.registers[self.im] & self.registers[self.ie]

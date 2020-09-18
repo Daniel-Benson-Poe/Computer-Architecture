@@ -76,7 +76,7 @@ def push_value(v):
 
         # copy value to SP
         top_of_stack_addr = registers[SP]
-        memory[top_of_stack_addr] = value
+        memory[top_of_stack_addr] = v
 
 def pop_value():
 
